@@ -159,6 +159,21 @@ Transcript:
     return message.content[0].text
 
 
+def save_transcript(video_id: str, video_url: str, transcript: str, source: str):
+    """Save the transcript to ~/.yt-tldr/ for later reference."""
+    cache_dir = Path.home() / ".yt-tldr"
+    cache_dir.mkdir(exist_ok=True)
+
+    transcript_file = cache_dir / "last_transcript.txt"
+    transcript_file.write_text(
+        f"Video ID: {video_id}\n"
+        f"URL: {video_url}\n"
+        f"Source: {source}\n"
+        f"{'=' * 60}\n\n"
+        f"{transcript}"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Get a TL;DR summary of a YouTube video"
@@ -176,16 +191,21 @@ def main():
 
     try:
         transcript = get_transcript(video_id)
+        source = "YouTube"
         print(f"Got YouTube transcript ({len(transcript)} chars).")
     except Exception as e:
         print(f"YouTube transcript not available: {e}")
         print("Falling back to Whisper transcription...")
         try:
             transcript = transcribe_with_whisper(args.url)
+            source = "Whisper"
             print(f"Got Whisper transcript ({len(transcript)} chars).")
         except Exception as whisper_error:
             print(f"Error: {whisper_error}", file=sys.stderr)
             sys.exit(1)
+
+    # Save transcript for later reference
+    save_transcript(video_id, args.url, transcript, source)
 
     print("Summarizing with Claude...\n")
 
